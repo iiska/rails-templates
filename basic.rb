@@ -62,10 +62,18 @@ services:
 YML
 
 file 'Dockerfile', <<-DOCKER
-FROM ruby:2.3
+FROM ruby:2.3-alpine
 MAINTAINER "#{ask('Dockerfile maintainer? Eg. John Doe <john@example.com>')}"
 
-RUN apt-get update -qq && apt-get install -y build-essential libpq-dev
+ENV BUILD_PKGS="curl-dev ruby-dev build-base" \
+  DEV_PKGS="zlib-dev libxml2-dev libxslt-dev tzdata yaml-dev postgresql-dev"
+
+RUN apk --update --upgrade add $BUILD_PKGS $DEV_PKGS && rm -rf /var/cache/apk/*
+
+RUN gem install -N nokogiri -- --use-system-libraries && \
+  bundle config --global build.nokogiri "--use-system-libraries" && \
+  bundle config --global build.nokogumbo "--use-system-libraries" && \
+  echo "gem: --no-document" >> /etc/gemrc
 
 # Setup Rails application
 # =======================
@@ -78,6 +86,8 @@ ADD Gemfile.lock $APP_DIR/Gemfile.lock
 RUN bundle install
 
 ADD . $APP_DIR
+
+EXPOSE 5000
 
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 DOCKER
@@ -98,5 +108,5 @@ after_bundle do
   run 'brakeman --rake'
 
   run 'docker-compose build'
-  run 'docker-compose run -e RAILS_ENV=test rake db:create'
+  run 'docker-compose run -e RAILS_ENV=test app rake db:create'
 end
