@@ -64,7 +64,7 @@ services:
     volumes:
       - .:/app:z
     ports:
-      - "5000:5000"
+      - "3000:3000"
     links:
       - redis
       - db
@@ -92,7 +92,7 @@ RUN bundle install
 
 ADD . $APP_DIR
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 DOCKER
