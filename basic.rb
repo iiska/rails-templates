@@ -1,3 +1,5 @@
+gsub_file 'Gemfile', "# gem 'therubyracer', platforms: :ruby",
+          "gem 'therubyracer', platforms: :ruby"
 gem_group :development, :test do
   gem 'brakeman'
   gem 'bullet'
@@ -6,6 +8,15 @@ gem_group :development, :test do
   gem 'factory_girl_rails'
   gem 'pry-rails'
   gem 'rubocop', require: false
+end
+
+inject_into_file 'config/database.yml',
+                 after: "default: &default\n" do
+  <<-YAML
+  host: db
+  username: #{app_name}
+  password: password
+  YAML
 end
 
 environment <<-RUBY
@@ -62,18 +73,12 @@ services:
 YML
 
 file 'Dockerfile', <<-DOCKER
-FROM ruby:2.3-alpine
+FROM ruby:2.3
 MAINTAINER "#{ask('Dockerfile maintainer? Eg. John Doe <john@example.com>')}"
 
-ENV BUILD_PKGS="curl-dev ruby-dev build-base" \
-  DEV_PKGS="zlib-dev libxml2-dev libxslt-dev tzdata yaml-dev postgresql-dev"
+RUN apt-get update -qq && apt-get install -y build-essential libpq-dev
 
-RUN apk --update --upgrade add $BUILD_PKGS $DEV_PKGS && rm -rf /var/cache/apk/*
-
-RUN gem install -N nokogiri -- --use-system-libraries && \
-  bundle config --global build.nokogiri "--use-system-libraries" && \
-  bundle config --global build.nokogumbo "--use-system-libraries" && \
-  echo "gem: --no-document" >> /etc/gemrc
+RUN echo "gem: --no-document" >> /etc/gemrc
 
 # Setup Rails application
 # =======================
@@ -92,6 +97,8 @@ EXPOSE 5000
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 DOCKER
 
+build_docker = yes?('Build Docker images?')
+
 after_bundle do
   generate 'rspec:install'
 
@@ -105,8 +112,10 @@ after_bundle do
     '  config.include FactoryGirl::Syntax::Methods'
   end
 
-  run 'brakeman --rake'
+  run 'brakeman --rake' unless File.exist? 'lib/tasks/brakeman.rake'
 
-  run 'docker-compose build'
-  run 'docker-compose run -e RAILS_ENV=test app rake db:create'
+  if build_docker
+    run 'docker-compose build'
+    run 'docker-compose run -e RAILS_ENV=test app rake db:create'
+  end
 end
