@@ -21,18 +21,18 @@ end
 
 environment <<-RUBY
 config.generators do |g|
-  g.test_framework = :rspec
-end
+    g.test_framework = :rspec
+  end
 RUBY
 
 %w(development test).each do |e|
   environment(nil, env: e) do
     <<-RUBY
-    config.after_initialize do
-      Bullet.enable = true
-      Bullet.raise = true
-      Bullet.rails_logger = true
-    end
+config.after_initialize do
+    Bullet.enable = true
+    Bullet.raise = true
+    Bullet.rails_logger = true
+  end
     RUBY
   end
 end
