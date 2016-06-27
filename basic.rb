@@ -26,14 +26,14 @@ end
 RUBY
 
 %w(development test).each do |e|
-  environment env: e do
+  environment(nil, env: e) do
     <<-RUBY
-		config.after_initialize do
-			Bullet.enable = true
-			Bullet.raise = true
-			Bullet.rails_logger = true
-		end
-		RUBY
+    config.after_initialize do
+      Bullet.enable = true
+      Bullet.raise = true
+      Bullet.rails_logger = true
+    end
+    RUBY
   end
 end
 
