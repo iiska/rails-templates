@@ -10,6 +10,13 @@ gem_group :development, :test do
   gem 'rubocop', require: false
 end
 
+# Replace jQuery with Vanilla UJS
+gsub_file 'Gemfile', /# Use jquery.*\ngem 'jquery-rails'/,
+          "# https://github.com/hauleth/vanilla-ujs\ngem 'vanilla-ujs'"
+gsub_file 'app/assets/javascripts/application.js',
+          %r{//=\s+require jquery\n//=\s+require jquery_ujs},
+          '//= require vanilla-ujs'
+
 inject_into_file 'config/database.yml',
                  after: "default: &default\n" do
   <<-YAML
