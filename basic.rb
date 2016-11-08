@@ -109,14 +109,20 @@ build_docker = yes?('Build Docker images?')
 after_bundle do
   generate 'rspec:install'
 
+  file 'spec/support/factory_girl.rb', <<-FACTORY_GIRL
+RSpec.configure do |config|
+  config.include FactoryGirl::Syntax::Methods
+end
+  FACTORY_GIRL
+
   inject_into_file 'spec/spec_helper.rb',
                    before: 'RSpec.configure do |config|' do
     "require 'simplecov'\nSimpleCov.start 'rails'\n"
   end
 
-  inject_into_file 'spec/spec_helper.rb',
-                   after: 'RSpec.configure do |config|' do
-    '  config.include FactoryGirl::Syntax::Methods'
+  inject_into_file 'spec/rails_helper.rb',
+                   after: /# Add additional requires.*/ do
+    "require 'support/factory_girl'\n"
   end
 
   run 'brakeman --rake' unless File.exist? 'lib/tasks/brakeman.rake'
