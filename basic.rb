@@ -32,7 +32,7 @@ config.generators do |g|
   end
 RUBY
 
-%w(development test).each do |e|
+%w[development test].each do |e|
   environment(nil, env: e) do
     <<-RUBY
 config.after_initialize do
@@ -83,7 +83,8 @@ file 'Dockerfile', <<-DOCKER
 FROM ruby:2.3
 MAINTAINER "#{ask('Dockerfile maintainer? Eg. John Doe <john@example.com>')}"
 
-RUN apt-get update -qq && apt-get install -y build-essential libpq-dev
+RUN apt-get update -qq && \
+  apt-get install -y build-essential libpq-dev libssl-dev
 
 RUN echo "gem: --no-document" >> /etc/gemrc
 
