@@ -22,6 +22,7 @@ end
 environment <<-RUBY
 config.generators do |g|
     g.test_framework = :rspec
+    g.javascript_engine = :js
   end
 RUBY
 

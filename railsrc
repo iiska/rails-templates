@@ -1,0 +1,5 @@
+# .railsrc
+-m https://github.com/iiska/rails-templates/raw/master/basic.rb
+--database=postgresql
+--skip-coffee
+--skip-test # Skip TestUnit

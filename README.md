@@ -2,14 +2,12 @@ My [application templates][rails-templates-guide] for Ruby on Rails.
 
 [rails-templates-guide]: http://guides.rubyonrails.org/rails_application_templates.html
 
-Basic
------
+1. Copy railsrc to your $HOME as .railsrc
 
-Create new Rails app with basic template using following command.
+    cp railsrc $HOME/.railsrc
 
-    rails new -d postgresql -T \
-      -m https://github.com/iiska/rails-templates/raw/master/basic.rb \
-      APP_NAME
+2. Running `` rails new APP_NAME `` will now get default args from .railsrc and
+   uses template `` https://github.com/iiska/rails-templates/raw/master/basic.rb ``
 
 Template includes following gems:
 
