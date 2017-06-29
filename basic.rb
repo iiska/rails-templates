@@ -10,6 +10,11 @@ gem_group :development, :test do
   gem 'rubocop', require: false
 end
 
+gem_group :test do
+  gem 'capybara'
+  gem 'selenium-webdriver'
+end
+
 inject_into_file 'config/database.yml',
                  after: "default: &default\n" do
   <<-YAML
@@ -28,12 +33,12 @@ RUBY
 
 %w[development test].each do |e|
   environment(nil, env: e) do
-    <<-RUBY
-config.after_initialize do
-    Bullet.enable = true
-    Bullet.raise = true
-    Bullet.rails_logger = true
-  end
+    <<~RUBY
+      config.after_initialize do
+        Bullet.enable = true
+        Bullet.raise = true
+        Bullet.rails_logger = true
+      end
     RUBY
   end
 end
@@ -112,12 +117,38 @@ end
 
   inject_into_file 'spec/spec_helper.rb',
                    before: 'RSpec.configure do |config|' do
-    "require 'simplecov'\nSimpleCov.start 'rails'\n"
+    <<~RB
+
+      require 'simplecov'
+      SimpleCov.start 'rails'
+
+    RB
   end
 
   inject_into_file 'spec/rails_helper.rb',
                    after: /# Add additional requires.*/ do
-    "require 'support/factory_girl'\n"
+    <<~RB
+
+      require 'support/factory_girl'
+      require 'selenium/webdriver'
+
+      Capybara.register_driver :chrome do |app|
+        Capybara::Selenium::Driver.new(app, browser: :chrome)
+      end
+
+      Capybara.register_driver :headless_chrome do |app|
+        capabilities = Selenium::WebDriver::Remote::Capabilities.chrome(
+          chromeOptions: { args: %w(headless disable-gpu) }
+        )
+
+        Capybara::Selenium::Driver.new app,
+          browser: :chrome,
+          desired_capabilities: capabilities
+      end
+
+      Capybara.javascript_driver = :headless_chrome
+
+    RB
   end
 
   run 'brakeman --rake' unless File.exist? 'lib/tasks/brakeman.rake'
