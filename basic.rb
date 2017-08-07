@@ -1,5 +1,5 @@
 gsub_file 'Gemfile', "# gem 'therubyracer', platforms: :ruby",
-          "gem 'therubyracer', platforms: :ruby"
+          "gem 'mini_racer', platforms: :ruby"
 gem_group :development, :test do
   gem 'brakeman'
   gem 'bullet'
