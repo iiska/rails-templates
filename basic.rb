@@ -66,6 +66,7 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile.dev
     command: bundle exec rails s -b 0.0.0.0
     volumes:
       - .:/app:z
@@ -78,29 +79,78 @@ services:
       - DOCKERIZED=true
 YML
 
+@maintainer = ask('Dockerfile maintainer? Eg. John Doe <john@example.com>')
+
 file 'Dockerfile', <<-DOCKER
-FROM ruby:2.3
-MAINTAINER "#{ask('Dockerfile maintainer? Eg. John Doe <john@example.com>')}"
+# Build minimal production image. NOTICE that you have to precompile rails assets
+# before building this image.
+#
+#   rails assets:precompile
+FROM ruby:2.4-alpine3.6
+MAINTAINER "#{@maintainer}"
 
-RUN apt-get update -qq && \
-  apt-get install -y build-essential libpq-dev libssl-dev
+ENV BUILD_PACKAGES="curl-dev ruby-dev build-base bash zlib-dev libxml2-dev libxslt-dev yaml-dev postgresql-dev" \
+    RUBY_PACKAGES="ruby yaml libstdc++ postgresql-libs libxml2 tzdata"
 
-RUN echo "gem: --no-document" >> /etc/gemrc
+RUN mkdir /app
+WORKDIR /app
+ADD Gemfile /app/Gemfile
+ADD Gemfile.lock /app/Gemfile.lock
+
+RUN apk update && \
+    apk upgrade && \
+    apk add $RUBY_PACKAGES && \
+    apk add --virtual build-deps $BUILD_PACKAGES && \
+    echo "gem: --no-document" >> /etc/gemrc && \
+    bundle install --without development test assets && \
+    apk del build-deps && \
+    rm -rf /var/cache/apk/*
 
 # Setup Rails application
 # =======================
-ENV APP_DIR /app
-RUN mkdir $APP_DIR
-WORKDIR $APP_DIR
-
-ADD Gemfile $APP_DIR/Gemfile
-ADD Gemfile.lock $APP_DIR/Gemfile.lock
-RUN bundle install
-
-ADD . $APP_DIR
+ADD . /app
 
 EXPOSE 3000
 
+ENV RAILS_LOG_TO_STDOUT on
+ENV RAILS_ENV production
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
+DOCKER
+
+file 'Dockerfile.dev', <<-DOCKER
+# vim: ft=dockerfile
+FROM ruby:2.4-alpine3.6
+MAINTAINER "#{@maintainer}"
+
+ENV BUILD_PACKAGES="curl-dev ruby-dev build-base bash" \
+    DEV_PACKAGES="zlib-dev libxml2-dev libxslt-dev yaml-dev postgresql-dev" \
+    RUBY_PACKAGES="ruby-json yaml tzdata nodejs yarn"
+
+# Update and install base packages and nokogiri gem that requires a
+# native compilation
+RUN apk update && \
+    apk upgrade && \
+    apk add --update\
+    $BUILD_PACKAGES \
+    $DEV_PACKAGES \
+    $RUBY_PACKAGES && \
+    rm -rf /var/cache/apk/* && \
+    echo "gem: --no-document" >> /etc/gemrc
+
+# Setup Rails application
+# =======================
+RUN mkdir /app
+WORKDIR /app
+
+ADD Gemfile /app/Gemfile
+ADD Gemfile.lock /app/Gemfile.lock
+RUN bundle install
+
+ADD . /app
+
+EXPOSE 3000
+
+ENV RAILS_LOG_TO_STDOUT on
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 DOCKER
 
